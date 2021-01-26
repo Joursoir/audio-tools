@@ -1,13 +1,24 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <getopt.h>
 #include <errno.h>
 #include <pulse/simple.h>
 
 #define BUFSIZE 1024
 volatile sig_atomic_t flag_do = 1;
+
+enum audio_format {
+	none, // = 0
+	wav // = 1
+};
+
+static const char *correct_formats[] = {
+	"wav", NULL
+};
 
 void handler(int s)
 {
@@ -43,10 +54,43 @@ int main(int argc, char *argv[])
 	pa_simple *connection;
 	pa_sample_spec specification;
 	int fd_output = STDOUT_FILENO;
+	int result, i;
+	enum audio_format file_format = none;
+	const struct option long_options[] = {
+		{"help", no_argument, NULL, 'h'},
+		{"format", required_argument, NULL, 'f'},
+		{"formats", no_argument, NULL, 'F'},
+		{NULL, 0, NULL, 0}
+	};
 
-	if(argv[1] != NULL) {
+	while((result = getopt_long(argc, argv, "hf:F", long_options, NULL)) != -1) {
+		switch(result) {
+			case 'h': { 
+				// print help
+				break;
+			}
+			case 'f': {
+				for(i = 0; correct_formats[i] != NULL; i++) {
+					if(strcmp(optarg, correct_formats[i]) == 0) {
+						file_format = i+1;
+						break;
+					}
+				}
+
+				if(file_format != none) break;
+				// else print formats (below)
+			}
+			case 'F': {
+				// print formats
+				break;
+			}
+			default: break;
+		}
+	}
+	
+	if(argv[optind] != NULL) {
 		mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
-		fd_output = open(argv[1], O_WRONLY | O_CREAT| O_TRUNC, mode);
+		fd_output = open(argv[optind], O_WRONLY | O_CREAT| O_TRUNC, mode);
 		if(fd_output == -1) {
 			perror("[Error] open");
 			exit(1);
