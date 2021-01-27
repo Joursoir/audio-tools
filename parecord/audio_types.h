@@ -6,10 +6,12 @@
 
 #include "wav_header.h"
 
-#define AUDIO_FORMAT_NONE -1
-#define AUDIO_FORMAT_WAVE 0
+enum audio_types {
+	AUDIO_TYPE_WAVE,
+	AUDIO_TYPE_NONE = -1
+};
 
-struct audio_format {
+struct audio_types_info {
 	const char *name;
 	off_t rsv_bytes;
 };
@@ -17,7 +19,7 @@ struct audio_format {
 struct wav_header *init_wav_header(struct wav_header *header,
 	uint32_t size, uint16_t audioFormat, uint16_t numChannels,
 	uint32_t sampleRate, uint32_t bitsPerSample);
-int checkAudioFormat(char *source);
+int checkAudioType(char *source);
 off_t getOffset(int format);
 
 #endif /* AT_AUDIOTYPES_H */

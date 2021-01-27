@@ -52,27 +52,27 @@ int main(int argc, char *argv[])
 	specification.rate = 44100;
 
 	int fd_output = STDOUT_FILENO;
-	int file_format = AUDIO_FORMAT_NONE, result;
+	int file_type = AUDIO_TYPE_NONE, result;
 	off_t offset;
 	const struct option long_options[] = {
 		{"help", no_argument, NULL, 'h'},
-		{"format", required_argument, NULL, 'f'},
-		{"formats", no_argument, NULL, 'F'},
+		{"file-type", required_argument, NULL, 't'},
+		{"file-types", no_argument, NULL, 'T'},
 		{NULL, 0, NULL, 0}
 	};
 
-	while((result = getopt_long(argc, argv, "hf:F", long_options, NULL)) != -1) {
+	while((result = getopt_long(argc, argv, "ht:T", long_options, NULL)) != -1) {
 		switch(result) {
 			case 'h': { 
 				// print help
 				return 0;
 			}
-			case 'f': {
-				file_format = checkAudioFormat(optarg);
-				if(file_format != AUDIO_FORMAT_NONE) break;
+			case 't': {
+				file_type = checkAudioType(optarg);
+				if(file_type != AUDIO_TYPE_NONE) break;
 				// else print formats (below)
 			}
-			case 'F': {
+			case 'T': {
 				// print formats
 				return 0;
 			}
@@ -90,8 +90,8 @@ int main(int argc, char *argv[])
 	}
 
 	// reserve bytes for audio header:
-	if(file_format != AUDIO_FORMAT_NONE) {
-		offset = getOffset(file_format);
+	if(file_type != AUDIO_TYPE_NONE) {
+		offset = getOffset(file_type);
 		if(lseek(fd_output, offset, SEEK_SET) == -1) {
 			perror("[Error] lseek() form header");
 			return 1;
@@ -132,17 +132,17 @@ int main(int argc, char *argv[])
 	if(connection)
 		pa_simple_free(connection);
 
-	if(file_format != AUDIO_FORMAT_NONE) {
+	if(file_type != AUDIO_TYPE_NONE) {
 		if(lseek(fd_output, 0, SEEK_SET) == -1) {
 			perror("[Error] lseek()");
 			return 1;
 		}
 	}
 
-	switch(file_format)
+	switch(file_type)
 	{
-	case AUDIO_FORMAT_NONE: break;
-	case AUDIO_FORMAT_WAVE: {
+	case AUDIO_TYPE_NONE: break;
+	case AUDIO_TYPE_WAVE: {
 		struct stat s;
 		if(fstat(fd_output, &s) == -1) {
 			perror("[Error] fstat");
@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
 		}
 
 		struct wav_header *header = malloc(offset);
-		init_wav_header(header, s.st_size, 16, 1,
+		init_wav_header(header, s.st_size, 1,
 			specification.channels, specification.rate, 16);
 
 		#ifdef DEBUG

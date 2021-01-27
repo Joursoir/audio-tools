@@ -2,8 +2,8 @@
 
 #include "audio_types.h"
 
-static const struct audio_format support_formats[] = {
-	{"wav", 44}, // AUDIO_FORMAT_WAVE = 0
+static const struct audio_types_info support_types[] = {
+	{"wav", 44}, // AUDIO_TYPE_WAVE
 	{NULL, 0}
 };
 
@@ -28,19 +28,19 @@ struct wav_header *init_wav_header(struct wav_header *header,
 	return header;
 }
 
-int checkAudioFormat(char *source)
+int checkAudioType(char *source)
 {
 	int i;
-	for(i = 0; support_formats[i].name != NULL; i++) {
-		if(strcmp(source, support_formats[i].name) == 0) {
+	for(i = 0; support_types[i].name != NULL; i++) {
+		if(strcmp(source, support_types[i].name) == 0) {
 			return i;
 		}
 	}
 
-	return AUDIO_FORMAT_NONE;
+	return AUDIO_TYPE_NONE;
 }
 
 off_t getOffset(int format)
 {
-	return support_formats[format].rsv_bytes;
+	return support_types[format].rsv_bytes;
 }
