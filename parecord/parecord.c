@@ -6,19 +6,13 @@
 #include <signal.h>
 #include <getopt.h>
 #include <errno.h>
+#include <sys/stat.h>
 #include <pulse/simple.h>
 
+#include "audio_types.h"
+
 #define BUFSIZE 1024
-volatile sig_atomic_t flag_do = 1;
-
-enum audio_format {
-	none, // = 0
-	wav // = 1
-};
-
-static const char *correct_formats[] = {
-	"wav", NULL
-};
+volatile static sig_atomic_t flag_do = 1;
 
 void handler(int s)
 {
@@ -53,9 +47,13 @@ int main(int argc, char *argv[])
 
 	pa_simple *connection;
 	pa_sample_spec specification;
+	specification.format = PA_SAMPLE_S16LE;
+	specification.channels = 2;
+	specification.rate = 44100;
+
 	int fd_output = STDOUT_FILENO;
-	int result, i;
-	enum audio_format file_format = none;
+	int file_format = AUDIO_FORMAT_NONE, result;
+	off_t offset;
 	const struct option long_options[] = {
 		{"help", no_argument, NULL, 'h'},
 		{"format", required_argument, NULL, 'f'},
@@ -67,39 +65,38 @@ int main(int argc, char *argv[])
 		switch(result) {
 			case 'h': { 
 				// print help
-				break;
+				return 0;
 			}
 			case 'f': {
-				for(i = 0; correct_formats[i] != NULL; i++) {
-					if(strcmp(optarg, correct_formats[i]) == 0) {
-						file_format = i+1;
-						break;
-					}
-				}
-
-				if(file_format != none) break;
+				file_format = checkAudioFormat(optarg);
+				if(file_format != AUDIO_FORMAT_NONE) break;
 				// else print formats (below)
 			}
 			case 'F': {
 				// print formats
-				break;
+				return 0;
 			}
 			default: break;
 		}
 	}
-	
+
 	if(argv[optind] != NULL) {
 		mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 		fd_output = open(argv[optind], O_WRONLY | O_CREAT| O_TRUNC, mode);
 		if(fd_output == -1) {
-			perror("[Error] open");
-			exit(1);
+			perror("[Error] open()");
+			return 1;
 		}
 	}
 
-	specification.format = PA_SAMPLE_S16LE;
-	specification.channels = 2;
-	specification.rate = 44100;
+	// reserve bytes for audio header:
+	if(file_format != AUDIO_FORMAT_NONE) {
+		offset = getOffset(file_format);
+		if(lseek(fd_output, offset, SEEK_SET) == -1) {
+			perror("[Error] lseek() form header");
+			return 1;
+		}
+	}
 
 	connection = pa_simple_new(NULL,
 					argv[0],
@@ -134,6 +131,55 @@ int main(int argc, char *argv[])
 
 	if(connection)
 		pa_simple_free(connection);
+
+	if(file_format != AUDIO_FORMAT_NONE) {
+		if(lseek(fd_output, 0, SEEK_SET) == -1) {
+			perror("[Error] lseek()");
+			return 1;
+		}
+	}
+
+	switch(file_format)
+	{
+	case AUDIO_FORMAT_NONE: break;
+	case AUDIO_FORMAT_WAVE: {
+		struct stat s;
+		if(fstat(fd_output, &s) == -1) {
+			perror("[Error] fstat");
+			return 1;
+		}
+
+		struct wav_header *header = malloc(offset);
+		init_wav_header(header, s.st_size, 16, 1,
+			specification.channels, specification.rate, 16);
+
+		#ifdef DEBUG
+			fprintf(stderr, "chunkId: %#x\n", header->chunkId);
+			fprintf(stderr, "chunkSize: %#x\n", header->chunkSize);
+			fprintf(stderr, "format: %#x\n", header->format);
+			fprintf(stderr, "subchunk1Id: %#x\n", header->subchunk1Id);
+			fprintf(stderr, "subchunk1Size: %#x\n", header->subchunk1Size);
+			fprintf(stderr, "audioFormat: %#x\n", header->audioFormat);
+			fprintf(stderr, "numChannels: %#x\n", header->numChannels);
+			fprintf(stderr, "sampleRate: %#x\n", header->sampleRate);
+			fprintf(stderr, "byteRate: %#x\n", header->byteRate);
+			fprintf(stderr, "blockAlign: %#x\n", header->blockAlign);
+			fprintf(stderr, "bitsPerSample: %#x\n", header->bitsPerSample);
+			fprintf(stderr, "subchunk2Id: %#x\n", header->subchunk2Id);
+			fprintf(stderr, "subchunk2Size: %#x\n", header->subchunk2Size);
+		#endif
+
+		if(write(fd_output, header, offset) < 0) {
+			perror("[Error] write()");
+			return 1;
+		}
+	}
+	default: break;
+	}
+
+	if(fd_output != STDOUT_FILENO) {
+		close(fd_output);
+	}
 
 	return 0;
 }

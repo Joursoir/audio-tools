@@ -8,14 +8,14 @@ static const struct audio_format support_formats[] = {
 };
 
 struct wav_header *init_wav_header(struct wav_header *header,
-	uint32_t size, uint32_t subchunk1Size, uint16_t audioFormat,
-	uint16_t numChannels, uint32_t sampleRate, uint32_t bitsPerSample)
+	uint32_t size, uint16_t audioFormat, uint16_t numChannels,
+	uint32_t sampleRate, uint32_t bitsPerSample)
 {
 	header->chunkId = 0x46464952; // = "RIFF"
 	header->chunkSize = size - 8;
 	header->format = 0x45564157; // = "WAVE"
 	header->subchunk1Id = 0x20746d66; // = "fmt "
-	header->subchunk1Size = subchunk1Size;
+	header->subchunk1Size = 16;
 	header->audioFormat = audioFormat;
 	header->numChannels = numChannels;
 	header->sampleRate = sampleRate;

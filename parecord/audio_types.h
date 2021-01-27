@@ -15,8 +15,8 @@ struct audio_format {
 };
 
 struct wav_header *init_wav_header(struct wav_header *header,
-	uint32_t size, uint32_t subchunk1Size, uint16_t audioFormat,
-	uint16_t numChannels, uint32_t sampleRate, uint32_t bitsPerSample);
+	uint32_t size, uint16_t audioFormat, uint16_t numChannels,
+	uint32_t sampleRate, uint32_t bitsPerSample);
 int checkAudioFormat(char *source);
 off_t getOffset(int format);
 
