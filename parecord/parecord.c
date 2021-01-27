@@ -11,7 +11,14 @@
 
 #include "audio_types.h"
 
+#define PAR_RATE_MIN 2000U
+#define PAR_CHANNELS_MIN 1U
+
 #define BUFSIZE 1024
+#define STD_REC_FORMAT PA_SAMPLE_S16LE
+#define STD_REC_RATE 44100U
+#define STD_REC_CHANNELS PAR_CHANNELS_MIN
+
 volatile static sig_atomic_t flag_do = 1;
 
 void handler(int s)
@@ -47,38 +54,76 @@ int main(int argc, char *argv[])
 
 	pa_simple *connection;
 	pa_sample_spec specification;
-	specification.format = PA_SAMPLE_S16LE;
-	specification.channels = 2;
-	specification.rate = 44100;
 
-	int fd_output = STDOUT_FILENO;
-	int file_type = AUDIO_TYPE_NONE, result;
+	int fd_output = STDOUT_FILENO, result;
+	int file_type = AUDIO_TYPE_NONE;
+	pa_sample_format_t record_format = STD_REC_FORMAT;
+	uint32_t record_rate = STD_REC_RATE;
+	uint8_t record_channels = STD_REC_CHANNELS;
 	off_t offset;
 	const struct option long_options[] = {
 		{"help", no_argument, NULL, 'h'},
 		{"file-type", required_argument, NULL, 't'},
 		{"file-types", no_argument, NULL, 'T'},
+		{"format", required_argument, NULL, 'f'},
+		{"formats", no_argument, NULL, 'F'},
+		{"channels", required_argument, NULL, 'c'},
+		{"rate", required_argument, NULL, 'r'},
 		{NULL, 0, NULL, 0}
 	};
 
-	while((result = getopt_long(argc, argv, "ht:T", long_options, NULL)) != -1) {
+	while((result = getopt_long(argc, argv, "ht:Tf:Fc:r:",
+		long_options, NULL)) != -1) {
 		switch(result) {
-			case 'h': { 
-				// print help
-				return 0;
+		case 'h': { 
+			// print help
+			return 0;
+		}
+		case 't': {
+			file_type = checkAudioType(optarg);
+			if(file_type != AUDIO_TYPE_NONE) break;
+			// else print file types (below)
+		}
+		case 'T': {
+			// print file types
+			return 0;
+		}
+		case 'f': {
+			record_format = checkAudioFormat(optarg);
+			if(record_format != PA_SAMPLE_INVALID) break;
+			// else print formats (below)
+		}
+		case 'F': {
+			// print formats
+			return 0;
+		}
+		case 'c': {
+			record_channels = atoi(optarg);
+
+			if(record_channels < PAR_CHANNELS_MIN || record_channels > PA_CHANNELS_MAX) {
+				fprintf(stderr, "Valid channels values are %d - %d\n",
+					PAR_CHANNELS_MIN, PA_CHANNELS_MAX);
+				return 1;
 			}
-			case 't': {
-				file_type = checkAudioType(optarg);
-				if(file_type != AUDIO_TYPE_NONE) break;
-				// else print formats (below)
+			break;
+		}
+		case 'r': {
+			record_rate = atoi(optarg);
+
+			if(record_rate < PAR_RATE_MIN || record_rate > PA_RATE_MAX) {
+				fprintf(stderr, "Valid rate values are %d - %d Hz\n",
+					PAR_RATE_MIN, PA_RATE_MAX);
+				return 1;
 			}
-			case 'T': {
-				// print formats
-				return 0;
-			}
-			default: break;
+			break;
+		}
+		default: break;
 		}
 	}
+
+	specification.format = record_format;
+	specification.channels = record_channels;
+	specification.rate = record_rate;
 
 	if(argv[optind] != NULL) {
 		mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;

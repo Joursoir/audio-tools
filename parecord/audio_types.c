@@ -7,6 +7,23 @@ static const struct audio_types_info support_types[] = {
 	{NULL, 0}
 };
 
+static const struct audio_formats_info support_formats[] = {
+	{"U8", PA_SAMPLE_U8},
+	{"A_LAW", PA_SAMPLE_ALAW},
+	{"MU_LAW", PA_SAMPLE_ULAW},
+	{"S16_LE", PA_SAMPLE_S16LE},
+	{"S16_BE", PA_SAMPLE_S16BE},
+	{"FLOAT32_LE", PA_SAMPLE_FLOAT32LE},
+	{"FLOAT32_BE", PA_SAMPLE_FLOAT32BE},
+	{"S32_LE", PA_SAMPLE_S32LE},
+	{"S32_BE", PA_SAMPLE_S32BE},
+	{"S24_LE", PA_SAMPLE_S24LE},
+	{"S24_BE", PA_SAMPLE_S24BE},
+	{"S24_32LE", PA_SAMPLE_S24_32LE},
+	{"S24_32BE", PA_SAMPLE_S24_32BE},
+	{NULL, 0}
+};
+
 struct wav_header *init_wav_header(struct wav_header *header,
 	uint32_t size, uint16_t audioFormat, uint16_t numChannels,
 	uint32_t sampleRate, uint32_t bitsPerSample)
@@ -43,4 +60,16 @@ int checkAudioType(char *source)
 off_t getOffset(int format)
 {
 	return support_types[format].rsv_bytes;
+}
+
+pa_sample_format_t checkAudioFormat(char *source)
+{
+	int i;
+	for(i = 0; support_formats[i].name != NULL; i++) {
+		if(strcmp(source, support_formats[i].name) == 0) {
+			return support_formats[i].pa_format;
+		}
+	}
+
+	return PA_SAMPLE_INVALID;
 }
