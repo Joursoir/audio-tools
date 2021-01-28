@@ -15,7 +15,7 @@
 #define PAR_CHANNELS_MIN 1U
 
 #define BUFSIZE 1024
-#define STD_REC_FORMAT PA_SAMPLE_S16LE
+#define STD_REC_FORMAT AUDIO_FORMAT_S16LE
 #define STD_REC_RATE 44100U
 #define STD_REC_CHANNELS PAR_CHANNELS_MIN
 
@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
 
 	int fd_output = STDOUT_FILENO, result;
 	int file_type = AUDIO_TYPE_NONE;
-	pa_sample_format_t record_format = STD_REC_FORMAT;
+	int record_format = STD_REC_FORMAT;
 	uint32_t record_rate = STD_REC_RATE;
 	uint8_t record_channels = STD_REC_CHANNELS;
 	off_t offset;
@@ -75,8 +75,29 @@ int main(int argc, char *argv[])
 	while((result = getopt_long(argc, argv, "ht:Tf:Fc:r:",
 		long_options, NULL)) != -1) {
 		switch(result) {
-		case 'h': { 
-			// print help
+		case 'h': {
+			fprintf(stderr, "Synopsis:\n\tparecord [OPTION] ... [FILE]\n");
+
+			fprintf(stderr, "Option:\n\t-h, --help\n");
+			fprintf(stderr, "\t\tPrint this text.\n");
+
+			fprintf(stderr, "\t-t, --file-type\n");
+			fprintf(stderr, "\t\tFile type (pcm, wav). PCM is used by default\n");
+
+			fprintf(stderr, "\t-T, --file-types\n");
+			fprintf(stderr, "\t\tPrint valid file types\n");
+
+			fprintf(stderr, "\t-f, --format\n");
+			fprintf(stderr, "\t\tSample format. S16_LE is used by default\n");
+
+			fprintf(stderr, "\t-F, --formats\n");
+			fprintf(stderr, "\t\tPrint valid sample formats\n");
+
+			fprintf(stderr, "\t-c, --channels\n");
+			fprintf(stderr, "\t\tThe number of channels. One channel is used by default.\n");
+
+			fprintf(stderr, "\t-r, --rate\n");
+			fprintf(stderr, "\t\tSample rate in Hz. %d Hz is used by default. \n", STD_REC_RATE);
 			return 0;
 		}
 		case 't': {
@@ -85,7 +106,9 @@ int main(int argc, char *argv[])
 			// else print file types (below)
 		}
 		case 'T': {
-			// print file types
+			char *types = getAllAudioTypes();
+			fprintf(stderr, "Valid file types are:%s\n", types);
+			free(types);
 			return 0;
 		}
 		case 'f': {
@@ -94,7 +117,9 @@ int main(int argc, char *argv[])
 			// else print formats (below)
 		}
 		case 'F': {
-			// print formats
+			char *formats = getAllAudioFormats();
+			fprintf(stderr, "Valid sample formats are:%s\n", formats);
+			free(formats);
 			return 0;
 		}
 		case 'c': {
