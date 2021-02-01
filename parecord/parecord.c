@@ -7,6 +7,7 @@
 #include <getopt.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include <pulse/error.h>
 #include <pulse/simple.h>
 
 #include "audio_types.h"
@@ -56,11 +57,12 @@ int main(int argc, char *argv[])
 	pa_simple *connection;
 	pa_sample_spec specification;
 
-	int fd_output = STDOUT_FILENO, result;
+	int fd_output = STDOUT_FILENO, result, error;
 	int file_type = AUDIO_TYPE_NONE;
 	int record_format = STD_REC_FORMAT;
 	uint32_t record_rate = STD_REC_RATE;
 	uint8_t record_channels = STD_REC_CHANNELS;
+	char *device = NULL;
 	off_t offset;
 	const struct option long_options[] = {
 		{"help", no_argument, NULL, 'h'},
@@ -85,7 +87,7 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "\t\tPrint this text.\n");
 
 			fprintf(stderr, "\t-d, --device\n");
-			fprintf(stderr, "\t\tIn development...\n");
+			fprintf(stderr, "\t\tName of the audio devices to record stream.\n");
 
 			fprintf(stderr, "\t-D, --list-devices\n");
 			fprintf(stderr, "\t\tPrint all recorder audio devices\n");
@@ -110,7 +112,8 @@ int main(int argc, char *argv[])
 			return 0;
 		}
 		case 'd': {
-			// ...
+			device = malloc((strlen(optarg)+1) * sizeof(char));
+			strcpy(device, optarg);
 			break;
 		}
 		case 'D': {
@@ -201,14 +204,14 @@ int main(int argc, char *argv[])
 	connection = pa_simple_new(NULL,
 					argv[0],
 					PA_STREAM_RECORD,
-					NULL,
+					device,
 					"record",
 					&specification,
 					NULL,
 					NULL,
-					NULL);
+					&error);
 	if(!connection) {
-		fprintf(stderr, "[Error] pa_simple_new() failed\n");
+		fprintf(stderr, "[Error] pa_simple_new(): %s failed\n", pa_strerror(error));
 		return 1;
 	}
 
@@ -280,6 +283,9 @@ int main(int argc, char *argv[])
 	if(fd_output != STDOUT_FILENO) {
 		close(fd_output);
 	}
+
+	if(!device)
+		free(device);
 
 	return 0;
 }
