@@ -23,9 +23,9 @@
 
 volatile static sig_atomic_t flag_do = 1;
 
-void handler(int s)
+void signal_handler(int s)
 {
-	signal(SIGINT, handler);
+	signal(SIGINT, signal_handler);
 	flag_do = 0;
 }
 
@@ -52,7 +52,7 @@ int loop_write(int fd, const void *data, size_t size)
 
 int main(int argc, char *argv[])
 {
-	signal(SIGINT, handler);
+	signal(SIGINT, signal_handler);
 
 	pa_simple *connection;
 	pa_sample_spec specification;
@@ -81,34 +81,28 @@ int main(int argc, char *argv[])
 		long_options, NULL)) != -1) {
 		switch(result) {
 		case 'h': {
-			fprintf(stderr, "Synopsis:\n\tparecord [OPTION] ... [FILE]\n");
-
-			fprintf(stderr, "Option:\n\t-h, --help\n");
-			fprintf(stderr, "\t\tPrint this text.\n");
-
-			fprintf(stderr, "\t-d, --device\n");
-			fprintf(stderr, "\t\tName of the audio devices to record stream.\n");
-
-			fprintf(stderr, "\t-D, --list-devices\n");
-			fprintf(stderr, "\t\tPrint all recorder audio devices\n");
-
-			fprintf(stderr, "\t-t, --file-type\n");
-			fprintf(stderr, "\t\tFile type (pcm, wav). PCM is used by default\n");
-
-			fprintf(stderr, "\t-T, --file-types\n");
-			fprintf(stderr, "\t\tPrint valid file types\n");
-
-			fprintf(stderr, "\t-f, --format\n");
-			fprintf(stderr, "\t\tSample format. S16_LE is used by default\n");
-
-			fprintf(stderr, "\t-F, --formats\n");
-			fprintf(stderr, "\t\tPrint valid sample formats\n");
-
-			fprintf(stderr, "\t-c, --channels\n");
-			fprintf(stderr, "\t\tThe number of channels. One channel is used by default.\n");
-
-			fprintf(stderr, "\t-r, --rate\n");
-			fprintf(stderr, "\t\tSample rate in Hz. %d Hz is used by default. \n", STD_REC_RATE);
+			printf("Synopsis:\n"
+					"\tparecord [OPTION] ... [FILE]\n"
+					"Option:\n"
+					"\t-h, --help\n"
+					"\t\tPrint this text.\n"
+					"\t-d, --device\n"
+					"\t\tName of the audio devices to record stream.\n"
+					"\t-D, --list-devices\n"
+					"\t\tPrint all recorder audio devices\n"
+					"\t-t, --file-type\n"
+					"\t\tFile type (pcm, wav). PCM is used by default\n"
+					"\t-T, --file-types\n"
+					"\t\tPrint valid file types\n"
+					"\t-f, --format\n"
+					"\t\tSample format. S16_LE is used by default\n"
+					"\t-F, --formats\n"
+					"\t\tPrint valid sample formats\n"
+					"\t-c, --channels\n"
+					"\t\tThe number of channels. One channel is used by default.\n"
+					"\t-r, --rate\n"
+					"\t\tSample rate in Hz. %d Hz is used by default.\n",
+					STD_REC_RATE);
 			return 0;
 		}
 		case 'd': {
@@ -124,10 +118,11 @@ int main(int argc, char *argv[])
 			if(!input_devices)
 				return 1;
 
-			fprintf(stderr, "**** Input devices ****\n");
+			printf("**** Input devices ****\n");
 			for(i = 0; i < list_devices_len; i++) {
-				fprintf(stderr, "device %d: %s\n", i+1, input_devices[i].name);
-				fprintf(stderr, "\t%s\n", input_devices[i].description);
+				printf("device %d: %s\n"
+						"\t%s\n",
+						i+1, input_devices[i].name, input_devices[i].description);
 			}
 
 			freeDeviceList(input_devices, list_devices_len);
@@ -140,7 +135,7 @@ int main(int argc, char *argv[])
 		}
 		case 'T': {
 			char *types = getAllAudioTypes();
-			fprintf(stderr, "Valid file types are:%s\n", types);
+			printf("Valid file types are:%s\n", types);
 			free(types);
 			return 0;
 		}
@@ -151,7 +146,7 @@ int main(int argc, char *argv[])
 		}
 		case 'F': {
 			char *formats = getAllAudioFormats();
-			fprintf(stderr, "Valid sample formats are:%s\n", formats);
+			printf("Valid sample formats are:%s\n", formats);
 			free(formats);
 			return 0;
 		}
@@ -211,7 +206,7 @@ int main(int argc, char *argv[])
 					NULL,
 					&error);
 	if(!connection) {
-		fprintf(stderr, "[Error] pa_simple_new(): %s failed\n", pa_strerror(error));
+		fprintf(stderr, "[Error] pa_simple_new(): %s\n", pa_strerror(error));
 		return 1;
 	}
 
@@ -257,19 +252,25 @@ int main(int argc, char *argv[])
 			specification.channels, specification.rate, 16);
 
 		#ifdef DEBUG
-			fprintf(stderr, "chunkId: %#x\n", header->chunkId);
-			fprintf(stderr, "chunkSize: %#x\n", header->chunkSize);
-			fprintf(stderr, "format: %#x\n", header->format);
-			fprintf(stderr, "subchunk1Id: %#x\n", header->subchunk1Id);
-			fprintf(stderr, "subchunk1Size: %#x\n", header->subchunk1Size);
-			fprintf(stderr, "audioFormat: %#x\n", header->audioFormat);
-			fprintf(stderr, "numChannels: %#x\n", header->numChannels);
-			fprintf(stderr, "sampleRate: %#x\n", header->sampleRate);
-			fprintf(stderr, "byteRate: %#x\n", header->byteRate);
-			fprintf(stderr, "blockAlign: %#x\n", header->blockAlign);
-			fprintf(stderr, "bitsPerSample: %#x\n", header->bitsPerSample);
-			fprintf(stderr, "subchunk2Id: %#x\n", header->subchunk2Id);
-			fprintf(stderr, "subchunk2Size: %#x\n", header->subchunk2Size);
+			fprintf(stderr, "WAV HEADER\n"
+				"chunkId: %#x\n"
+				"chunkSize: %#x\n"
+				"format: %#x\n"
+				"subchunk1Id: %#x\n"
+				"subchunk1Size: %#x\n"
+				"audioFormat: %#x\n"
+				"numChannels: %#x\n"
+				"sampleRate: %#x\n"
+				"byteRate: %#x\n"
+				"blockAlign: %#x\n"
+				"bitsPerSample: %#x\n"
+				"subchunk2Id: %#x\n"
+				"subchunk2Size: %#x\n",
+				header->chunkId, header->chunkSize, header->format,
+				header->subchunk1Id, header->subchunk1Size, header->audioFormat,
+				header->numChannels, header->sampleRate, header->byteRate,
+				header->blockAlign, header->bitsPerSample, header->subchunk2Id,
+				header->subchunk2Size);
 		#endif
 
 		if(write(fd_output, header, offset) < 0) {
@@ -279,6 +280,8 @@ int main(int argc, char *argv[])
 	}
 	default: break;
 	}
+
+	// clear:
 
 	if(fd_output != STDOUT_FILENO) {
 		close(fd_output);
