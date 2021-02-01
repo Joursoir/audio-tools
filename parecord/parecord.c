@@ -10,6 +10,7 @@
 #include <pulse/simple.h>
 
 #include "audio_types.h"
+#include "device.h"
 
 #define PAR_RATE_MIN 2000U
 #define PAR_CHANNELS_MIN 1U
@@ -63,6 +64,8 @@ int main(int argc, char *argv[])
 	off_t offset;
 	const struct option long_options[] = {
 		{"help", no_argument, NULL, 'h'},
+		{"device", required_argument, NULL, 'd'},
+		{"list-devices", no_argument, NULL, 'D'},
 		{"file-type", required_argument, NULL, 't'},
 		{"file-types", no_argument, NULL, 'T'},
 		{"format", required_argument, NULL, 'f'},
@@ -72,7 +75,7 @@ int main(int argc, char *argv[])
 		{NULL, 0, NULL, 0}
 	};
 
-	while((result = getopt_long(argc, argv, "ht:Tf:Fc:r:",
+	while((result = getopt_long(argc, argv, "hd:Dt:Tf:Fc:r:",
 		long_options, NULL)) != -1) {
 		switch(result) {
 		case 'h': {
@@ -80,6 +83,12 @@ int main(int argc, char *argv[])
 
 			fprintf(stderr, "Option:\n\t-h, --help\n");
 			fprintf(stderr, "\t\tPrint this text.\n");
+
+			fprintf(stderr, "\t-d, --device\n");
+			fprintf(stderr, "\t\tIn development...\n");
+
+			fprintf(stderr, "\t-D, --list-devices\n");
+			fprintf(stderr, "\t\tPrint all recorder audio devices\n");
 
 			fprintf(stderr, "\t-t, --file-type\n");
 			fprintf(stderr, "\t\tFile type (pcm, wav). PCM is used by default\n");
@@ -98,6 +107,27 @@ int main(int argc, char *argv[])
 
 			fprintf(stderr, "\t-r, --rate\n");
 			fprintf(stderr, "\t\tSample rate in Hz. %d Hz is used by default. \n", STD_REC_RATE);
+			return 0;
+		}
+		case 'd': {
+			// ...
+			break;
+		}
+		case 'D': {
+			int i, list_devices_len;
+			struct list_devices *input_devices
+				= getInputDeviceList(&list_devices_len);
+
+			if(!input_devices)
+				return 1;
+
+			fprintf(stderr, "**** Input devices ****\n");
+			for(i = 0; i < list_devices_len; i++) {
+				fprintf(stderr, "device %d: %s\n", i+1, input_devices[i].name);
+				fprintf(stderr, "\t%s\n", input_devices[i].description);
+			}
+
+			freeDeviceList(input_devices, list_devices_len);
 			return 0;
 		}
 		case 't': {
